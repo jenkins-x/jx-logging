@@ -11,8 +11,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	stackdriver "github.com/TV4/logrus-stackdriver-formatter"
 	"github.com/fatih/color"
+	stackdriver "github.com/jenkins-x/logrus-stackdriver-formatter/pkg/stackdriver"
 	"github.com/sirupsen/logrus"
 )
 
