@@ -7,11 +7,9 @@ PACKAGE_DIRS := $(shell $(GO) list ./... | grep -v /vendor/)
 GO_DEPENDENCIES := $(shell find . -type f -name '*.go')
 
 build: 
-	$(GO) build
+	$(GO) build ./...
 
-build: test
-
-test:
+test: build
 	$(GOTEST) --tags=unit -failfast -short ./...
 
 get-fmt-deps: ## Install test dependencies
