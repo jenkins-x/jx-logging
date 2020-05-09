@@ -83,6 +83,14 @@ func initializeLogger() error {
 		} else {
 			setFormatter(FormatLayoutText)
 		}
+
+		level := os.Getenv("JX_LOG_LEVEL")
+		if level != "" {
+			err := SetLevel(level)
+			if err != nil {
+				return errors.Wrapf(err, "unable to set level to %s", level)
+			}
+		}
 	}
 	return nil
 }
