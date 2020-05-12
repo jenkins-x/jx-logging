@@ -12,8 +12,8 @@ build:
 test: build
 	$(GOTEST) -coverprofile=coverage.out ./...
 
-test1: ## Runs single test specified by test name and optional package, eg 'make test1 TEST_PACKAGE=./pkg/gits TEST=TestGitCLI'
-	$(GOTEST) -v $(TEST_PACKAGE) -run $(TEST)
+test1: ## Runs single test specified by test name and optional package, eg 'make test1 TEST=TestGitCLI'
+	$(GOTEST) -v ./pkg/log -run $(TEST)
 
 get-fmt-deps: ## Install test dependencies
 	$(GO_NOMOD) get golang.org/x/tools/cmd/goimports
