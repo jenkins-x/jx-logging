@@ -2,14 +2,10 @@ package log
 
 import (
 	"bytes"
-	"fmt"
-	"io"
 	"os"
-	"strings"
-
-	"github.com/rickar/props"
 
 	"github.com/pkg/errors"
+	"github.com/rickar/props"
 
 	"github.com/fatih/color"
 	stackdriver "github.com/jenkins-x/logrus-stackdriver-formatter/pkg/stackdriver"
@@ -46,53 +42,71 @@ const (
 
 	// FormatLayoutStackdriver uses a custom formatter for stackdriver
 	FormatLayoutStackdriver FormatLayoutType = "stackdriver"
+
+	JxLogFormat = "JX_LOG_FORMAT"
+	JxLogFile = "JX_LOG_FILE"
+	JxLogLevel = "JX_LOG_LEVEL"
 )
 
 func initializeLogger() error {
 	if logger == nil {
-
-		// if we are inside a pod, record some useful info
-		var fields logrus.Fields
-		if exists, err := fileExists(labelsPath); err != nil {
-			return errors.Wrapf(err, "checking if %s exists", labelsPath)
-		} else if exists {
-			f, err := os.Open(labelsPath)
-			if err != nil {
-				return errors.Wrapf(err, "opening %s", labelsPath)
-			}
-			labels, err := props.Read(f)
-			if err != nil {
-				return errors.Wrapf(err, "reading %s as properties", labelsPath)
-			}
-			app := labels.Get("app")
-			if app != "" {
-				fields["app"] = app
-			}
-			chart := labels.Get("chart")
-			if chart != "" {
-				fields["chart"] = labels.Get("chart")
-			}
-		}
-		logger = logrus.WithFields(fields)
-
-		format := os.Getenv("JX_LOG_FORMAT")
-		if format == "json" {
-			setFormatter(FormatLayoutJSON)
-		} else if format == "stackdriver" {
-			setFormatter(FormatLayoutStackdriver)
-		} else {
-			setFormatter(FormatLayoutText)
-		}
-
-		level := os.Getenv("JX_LOG_LEVEL")
-		if level != "" {
-			err := SetLevel(level)
-			if err != nil {
-				return errors.Wrapf(err, "unable to set level to %s", level)
-			}
+		_, err := forceInitLogger()
+		if err != nil {
+			return err
 		}
 	}
 	return nil
+}
+
+func forceInitLogger() (*logrus.Entry, error) {
+	// if we are inside a pod, record some useful info
+	var fields logrus.Fields
+	if exists, err := fileExists(labelsPath); err != nil {
+		return nil, errors.Wrapf(err, "checking if %s exists", labelsPath)
+	} else if exists {
+		f, err := os.Open(labelsPath)
+		if err != nil {
+			return nil, errors.Wrapf(err, "opening %s", labelsPath)
+		}
+		labels, err := props.Read(f)
+		if err != nil {
+			return nil, errors.Wrapf(err, "reading %s as properties", labelsPath)
+		}
+		app := labels.Get("app")
+		if app != "" {
+			fields["app"] = app
+		}
+		chart := labels.Get("chart")
+		if chart != "" {
+			fields["chart"] = labels.Get("chart")
+		}
+	}
+	logger = logrus.WithFields(fields)
+
+	format := os.Getenv(JxLogFormat)
+	if format == "json" {
+		setFormatter(FormatLayoutJSON)
+	} else if format == "stackdriver" {
+		setFormatter(FormatLayoutStackdriver)
+	} else {
+		setFormatter(FormatLayoutText)
+	}
+
+	level := os.Getenv(JxLogLevel)
+	if level != "" {
+		err := SetLevel(level)
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to set level to %s", level)
+		}
+	}
+
+	debugFile := os.Getenv(JxLogFile)
+	if debugFile != "" {
+		hook := NewHook(debugFile, logrus.AllLevels)
+		logrus.AddHook(hook)
+	}
+
+	return logger, nil
 }
 
 // Logger obtains the logger for use in the jx codebase
@@ -111,7 +125,6 @@ func SetLevel(s string) error {
 	if err != nil {
 		return errors.Errorf("Invalid log level '%s'", s)
 	}
-	Logger().Debugf("logging set to level: %s", level)
 	logrus.SetLevel(level)
 	return nil
 }
@@ -122,13 +135,13 @@ func GetLevel() string {
 }
 
 // GetLevels returns the list of valid log levels
-func GetLevels() []string {
+/* func GetLevels() []string {
 	var levels []string
 	for _, level := range logrus.AllLevels {
 		levels = append(levels, level.String())
 	}
 	return levels
-}
+} */
 
 // setFormatter sets the logrus format to use either text or JSON formatting
 func setFormatter(layout FormatLayoutType) {
@@ -142,80 +155,22 @@ func setFormatter(layout FormatLayoutType) {
 	}
 }
 
-// JenkinsXTextFormat lets use a custom text format
-type JenkinsXTextFormat struct {
-	ShowInfoLevel   bool
-	ShowTimestamp   bool
-	TimestampFormat string
-}
-
-// NewJenkinsXTextFormat creates the default Jenkins X text formatter
-func NewJenkinsXTextFormat() *JenkinsXTextFormat {
-	return &JenkinsXTextFormat{
-		ShowInfoLevel:   false,
-		ShowTimestamp:   false,
-		TimestampFormat: "2006-01-02 15:04:05",
-	}
-}
-
-// Format formats the log statement
-func (f *JenkinsXTextFormat) Format(entry *logrus.Entry) ([]byte, error) {
-	var b *bytes.Buffer
-
-	if entry.Buffer != nil {
-		b = entry.Buffer
-	} else {
-		b = &bytes.Buffer{}
-	}
-
-	level := strings.ToUpper(entry.Level.String())
-	switch level {
-	case "INFO":
-		if f.ShowInfoLevel {
-			b.WriteString(colorStatus(level))
-			b.WriteString(": ")
-		}
-	case "WARNING":
-		b.WriteString(colorWarn(level))
-		b.WriteString(": ")
-	case "DEBUG":
-		b.WriteString(colorStatus(level))
-		b.WriteString(": ")
-	default:
-		b.WriteString(colorError(level))
-		b.WriteString(": ")
-	}
-	if f.ShowTimestamp {
-		b.WriteString(entry.Time.Format(f.TimestampFormat))
-		b.WriteString(" - ")
-	}
-
-	b.WriteString(entry.Message)
-
-	if !strings.HasSuffix(entry.Message, "\n") {
-		b.WriteByte('\n')
-	}
-	return b.Bytes(), nil
-}
-
-// Blank prints a blank line
-func Blank() {
-	fmt.Println()
-}
-
 // CaptureOutput calls the specified function capturing and returning all logged messages.
 func CaptureOutput(f func()) string {
 	var buf bytes.Buffer
 	logrus.SetOutput(&buf)
 	f()
-	logrus.SetOutput(os.Stderr)
+	logrus.SetOutput(os.Stdout)
 	return buf.String()
 }
 
+/*
+// Not sure if this is required
 // SetOutput sets the outputs for the default logger.
 func SetOutput(out io.Writer) {
 	logrus.SetOutput(out)
 }
+*/
 
 // copied from utils to avoid circular import
 func fileExists(path string) (bool, error) {
