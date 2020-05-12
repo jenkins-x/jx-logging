@@ -3,11 +3,10 @@ package log
 import (
 	"bytes"
 	"fmt"
+	"github.com/rickar/props"
 	"io"
 	"os"
 	"strings"
-
-	"github.com/rickar/props"
 
 	"github.com/pkg/errors"
 
@@ -50,48 +49,57 @@ const (
 
 func initializeLogger() error {
 	if logger == nil {
-
-		// if we are inside a pod, record some useful info
-		var fields logrus.Fields
-		if exists, err := fileExists(labelsPath); err != nil {
-			return errors.Wrapf(err, "checking if %s exists", labelsPath)
-		} else if exists {
-			f, err := os.Open(labelsPath)
-			if err != nil {
-				return errors.Wrapf(err, "opening %s", labelsPath)
-			}
-			labels, err := props.Read(f)
-			if err != nil {
-				return errors.Wrapf(err, "reading %s as properties", labelsPath)
-			}
-			app := labels.Get("app")
-			if app != "" {
-				fields["app"] = app
-			}
-			chart := labels.Get("chart")
-			if chart != "" {
-				fields["chart"] = labels.Get("chart")
-			}
-		}
-		logger = logrus.WithFields(fields)
-
-		format := os.Getenv("JX_LOG_FORMAT")
-		if format == "json" {
-			setFormatter(FormatLayoutJSON)
-		} else if format == "stackdriver" {
-			setFormatter(FormatLayoutStackdriver)
-		} else {
-			setFormatter(FormatLayoutText)
+		err := forceInitLogger()
+		if err != nil {
+			return err
 		}
 
-		level := os.Getenv("JX_LOG_LEVEL")
-		if level != "" {
-			err := SetLevel(level)
-			if err != nil {
-				return errors.Wrapf(err, "unable to set level to %s", level)
-			}
+	}
+	return nil
+}
+
+func forceInitLogger() error{
+	// if we are inside a pod, record some useful info
+	var fields logrus.Fields
+	if exists, err := fileExists(labelsPath); err != nil {
+		return errors.Wrapf(err, "checking if %s exists", labelsPath)
+	} else if exists {
+		f, err := os.Open(labelsPath)
+		if err != nil {
+			return errors.Wrapf(err, "opening %s", labelsPath)
+		}
+		labels, err := props.Read(f)
+		if err != nil {
+			return errors.Wrapf(err, "reading %s as properties", labelsPath)
+		}
+		app := labels.Get("app")
+		if app != "" {
+			fields["app"] = app
+		}
+		chart := labels.Get("chart")
+		if chart != "" {
+			fields["chart"] = labels.Get("chart")
 		}
 	}
+	logger = logrus.WithFields(fields)
+
+	format := os.Getenv("JX_LOG_FORMAT")
+	if format == "json" {
+		setFormatter(FormatLayoutJSON)
+	} else if format == "stackdriver" {
+		setFormatter(FormatLayoutStackdriver)
+	} else {
+		setFormatter(FormatLayoutText)
+	}
+
+	level := os.Getenv("JX_LOG_LEVEL")
+	if level != "" {
+		err := SetLevel(level)
+		if err != nil {
+			return errors.Wrapf(err, "unable to set level to %s", level)
+		}
+	}
+
 	return nil
 }
 

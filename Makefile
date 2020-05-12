@@ -10,7 +10,7 @@ build:
 	$(GO) build ./...
 
 test: build
-	$(GOTEST) --tags=unit -failfast -short ./...
+	$(GOTEST) -coverprofile=coverage.out -cover --tags=unit -failfast -short ./...
 
 get-fmt-deps: ## Install test dependencies
 	$(GO_NOMOD) get golang.org/x/tools/cmd/goimports
@@ -25,3 +25,6 @@ importfmt: get-fmt-deps
 
 modtidy:
 	$(GO) mod tidy
+
+coverage:
+	$(GO) tool cover -html=coverage.out
