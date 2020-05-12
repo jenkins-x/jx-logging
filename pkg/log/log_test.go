@@ -1,8 +1,7 @@
-// +build unit
-
 package log
 
 import (
+	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -10,81 +9,153 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_debug_log_is_written_to_output_when_corresponding_level_is_set(t *testing.T) {
-	err := SetLevel("info")
+func TestLogger_CanSetLevel(t *testing.T) {
+	l, err := forceInitLogger()
 	assert.NoError(t, err)
 
-	out := CaptureOutput(func() { Logger().Debug("hello") })
+	err = SetLevel("info")
+	assert.NoError(t, err)
+
+	out := CaptureOutput(func() { l.Debug("hello") })
 	assert.Empty(t, out)
+
+	out = CaptureOutput(func() { l.Warn("hello") })
+	assert.Equal(t, "WARNING: hello\n", out)
+
+	out = CaptureOutput(func() { l.Error("hello") })
+	assert.Equal(t, "ERROR: hello\n", out)
 
 	err = SetLevel("debug")
 	assert.NoError(t, err)
 
-	out = CaptureOutput(func() { Logger().Debug("hello") })
+	out = CaptureOutput(func() { l.Debug("hello") })
 	assert.Equal(t, "DEBUG: hello\n", out)
 }
 
-func Test_setting_unknown_log_level_returns_error(t *testing.T) {
-	err := SetLevel("foo")
+func TestLogger_CannotSetInvalidLevel(t *testing.T) {
+	_, err := forceInitLogger()
+	assert.NoError(t, err)
+
+	err = SetLevel("foo")
 	assert.Error(t, err)
 	assert.Equal(t, "Invalid log level 'foo'", err.Error())
 }
 
-func Test_debug_log_is_written_to_output_when_env_var_is_set(t *testing.T) {
-	err := SetLevel("info")
+func TestLogger_CanHandleLogLevelEnvVar(t *testing.T) {
+	l, err := forceInitLogger()
+	assert.NoError(t, err)
+
+	err = SetLevel("info")
 	assert.NoError(t, err)
 
 	assert.Equal(t, "info", GetLevel())
-	out := CaptureOutput(func() { Logger().Debug("hello") })
+	out := CaptureOutput(func() { l.Debug("hello") })
 	assert.Empty(t, out)
 
-	out = CaptureOutput(func() { Logger().Info("hello") })
+	out = CaptureOutput(func() { l.Info("hello") })
 	assert.Equal(t, "hello\n", out)
 
-	out = CaptureOutput(func() { Logger().Warn("hello") })
-	assert.Equal(t, "WARNING: hello\n", out)
-
-	out = CaptureOutput(func() { Logger().Error("hello") })
-	assert.Equal(t, "ERROR: hello\n", out)
-
 	os.Setenv("JX_LOG_LEVEL", "debug")
-	err = forceInitLogger()
+	defer os.Unsetenv("JX_LOG_LEVEL")
+
+	l, err = forceInitLogger()
 	assert.NoError(t, err)
 
 	assert.Equal(t, "debug", GetLevel())
-	out = CaptureOutput(func() { Logger().Debug("hello") })
+	out = CaptureOutput(func() { l.Debug("hello") })
 	assert.Equal(t, "DEBUG: hello\n", out)
 }
 
-func Test_Json_log_formatter(t *testing.T) {
+func TestLogger_JsonLogFormatter(t *testing.T) {
 	os.Setenv("JX_LOG_FORMAT", "json")
-	err := forceInitLogger()
+	defer os.Unsetenv("JX_LOG_FORMAT")
+
+	l, err := forceInitLogger()
 	assert.NoError(t, err)
 
-	out := CaptureOutput(func() { Logger().Infof("hello") })
-	t.Logf(out)
+	out := CaptureOutput(func() { l.Infof("hello") })
+
 	assert.Equal(t, strings.HasPrefix(out, "{"), true)
 	assert.Equal(t, strings.HasSuffix(out, "}\n"), true)
-	assert.Equal(t, strings.Contains(out, `"level":"info"`), true)
+	assert.Contains(t, out, `"level":"info"`)
 }
 
 func Test_Stackdriver_log_formatter(t *testing.T) {
 	os.Setenv("JX_LOG_FORMAT", "stackdriver")
-	err := forceInitLogger()
+	defer os.Unsetenv("JX_LOG_FORMAT")
+
+	l, err := forceInitLogger()
 	assert.NoError(t, err)
 
-	out := CaptureOutput(func() { Logger().Infof("hello") })
+	out := CaptureOutput(func() { l.Infof("hello") })
 	t.Logf(out)
 	assert.Equal(t, strings.HasPrefix(out, "{"), true)
 	assert.Equal(t, strings.HasSuffix(out, "}\n"), true)
-	assert.Equal(t, strings.Contains(out, `"severity":"INFO"`), true)
-	assert.Equal(t, strings.Contains(out, `"context":{}`), true)
+	assert.Contains(t, out, `"severity":"INFO"`)
+	assert.Contains(t, out, `"context":{}`)
 }
 
-func Test_GetLevels(t *testing.T) {
-	Logger()
-	levels := GetLevels()
-	assert.Equal(t, "panic fatal error warning info debug trace", strings.Join(levels, " "))
+func Test_CanLogToFile(t *testing.T) {
+	file, err := ioutil.TempFile("/tmp", "test1.*.log")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(file.Name())
+
+	t.Logf("got file %s", file.Name())
+
+	os.Setenv("JX_LOG_FORMAT", "text")
+	defer os.Unsetenv("JX_LOG_FORMAT")
+	os.Setenv("JX_LOG_FILE", file.Name())
+	defer os.Unsetenv("JX_LOG_FILE")
+
+	l, err := forceInitLogger()
+
+	err = SetLevel("debug")
+
+	assert.NoError(t, err)
+	assert.Equal(t, "debug", GetLevel())
+
+	out := CaptureOutput(func() { l.Debug("debug-hello") })
+	t.Logf("Out>: '%s'", out)
+	assert.Equal(t, "DEBUG: debug-hello\n", out)
+
+	b, err := ioutil.ReadFile( file.Name())
+	assert.NoError(t, err)
+	t.Logf("File>: '%s'", b)
+	assert.Contains(t, string(b), `"msg":"debug-hello"`)
+
+
+	out = CaptureOutput(func() { l.Info("info-hello") })
+	assert.Equal(t, "info-hello\n", out)
+	t.Logf("Out>: '%s'", out)
+
+	b, err = ioutil.ReadFile( file.Name())
+	assert.NoError(t, err)
+	t.Logf("File>: '%s'", b)
+	assert.Contains(t, string(b), `"msg":"debug-hello"`)
+	assert.Contains(t, string(b), `"msg":"info-hello"`)
+
+	out = CaptureOutput(func() { l.Warn("warning-hello") })
+	assert.Equal(t, "WARNING: warning-hello\n", out)
+	t.Logf("Out>: '%s'", out)
+
+	b, err = ioutil.ReadFile( file.Name())
+	assert.NoError(t, err)
+	t.Logf("File>: '%s'", b)
+	assert.Contains(t, string(b), `"msg":"debug-hello"`)
+	assert.Contains(t, string(b), `"msg":"info-hello"`)
+	assert.Contains(t, string(b), `"msg":"warning-hello"`)
+
+	out = CaptureOutput(func() { l.Error("error-hello") })
+	assert.Equal(t, "ERROR: error-hello\n", out)
+	t.Logf("Out>: '%s'", out)
+
+	b, err = ioutil.ReadFile( file.Name())
+	assert.NoError(t, err)
+	t.Logf("File>: '%s'", b)
+	assert.Contains(t, string(b), `"msg":"debug-hello"`)
+	assert.Contains(t, string(b), `"msg":"info-hello"`)
+	assert.Contains(t, string(b), `"msg":"warning-hello"`)
+	assert.Contains(t, string(b), `"msg":"error-hello"`)
 }
-
-

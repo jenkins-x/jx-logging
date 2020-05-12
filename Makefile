@@ -10,7 +10,10 @@ build:
 	$(GO) build ./...
 
 test: build
-	$(GOTEST) -coverprofile=coverage.out -cover --tags=unit -failfast -short ./...
+	$(GOTEST) -cover ./...
+
+test1: ## Runs single test specified by test name and optional package, eg 'make test1 TEST_PACKAGE=./pkg/gits TEST=TestGitCLI'
+	$(GOTEST) -v $(TEST_PACKAGE) -run $(TEST)
 
 get-fmt-deps: ## Install test dependencies
 	$(GO_NOMOD) get golang.org/x/tools/cmd/goimports
