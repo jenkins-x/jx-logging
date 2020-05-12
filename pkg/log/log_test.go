@@ -38,6 +38,15 @@ func Test_debug_log_is_written_to_output_when_env_var_is_set(t *testing.T) {
 	out := CaptureOutput(func() { Logger().Debug("hello") })
 	assert.Empty(t, out)
 
+	out = CaptureOutput(func() { Logger().Info("hello") })
+	assert.Equal(t, "hello\n", out)
+
+	out = CaptureOutput(func() { Logger().Warn("hello") })
+	assert.Equal(t, "WARNING: hello\n", out)
+
+	out = CaptureOutput(func() { Logger().Error("hello") })
+	assert.Equal(t, "ERROR: hello\n", out)
+
 	os.Setenv("JX_LOG_LEVEL", "debug")
 	err = forceInitLogger()
 	assert.NoError(t, err)
@@ -70,6 +79,12 @@ func Test_Stackdriver_log_formatter(t *testing.T) {
 	assert.Equal(t, strings.HasSuffix(out, "}\n"), true)
 	assert.Equal(t, strings.Contains(out, `"severity":"INFO"`), true)
 	assert.Equal(t, strings.Contains(out, `"context":{}`), true)
+}
+
+func Test_GetLevels(t *testing.T) {
+	Logger()
+	levels := GetLevels()
+	assert.Equal(t, "panic fatal error warning info debug trace", strings.Join(levels, " "))
 }
 
 
