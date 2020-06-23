@@ -1,8 +1,10 @@
 package log
 
 import (
-	"github.com/pkg/errors"
+	"io"
 	"os"
+
+	"github.com/pkg/errors"
 
 	"github.com/sirupsen/logrus"
 )
@@ -36,7 +38,7 @@ func (h *Hook) Levels() []logrus.Level {
 	return h.levels
 }
 
-func appendToFile(path string, message string) error {
+func appendToFile(path, message string) error {
 	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
 		return err
@@ -44,7 +46,7 @@ func appendToFile(path string, message string) error {
 
 	defer f.Close()
 
-	if err = Append(f, []byte(message)); err != nil {
+	if err := Append(f, []byte(message)); err != nil {
 		return err
 	}
 	return nil
@@ -52,7 +54,7 @@ func appendToFile(path string, message string) error {
 
 var invalidN bool // initialized to false
 
-func Append(f *os.File, data []byte) error {
+func Append(f io.Writer, data []byte) error {
 	n, err := f.Write(data)
 	if err != nil {
 		return errors.Wrapf(err, "failed appending")

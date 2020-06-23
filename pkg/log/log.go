@@ -44,8 +44,8 @@ const (
 	FormatLayoutStackdriver FormatLayoutType = "stackdriver"
 
 	JxLogFormat = "JX_LOG_FORMAT"
-	JxLogFile = "JX_LOG_FILE"
-	JxLogLevel = "JX_LOG_LEVEL"
+	JxLogFile   = "JX_LOG_FILE"
+	JxLogLevel  = "JX_LOG_LEVEL"
 )
 
 func initializeLogger() error {
@@ -61,9 +61,13 @@ func initializeLogger() error {
 func forceInitLogger() (*logrus.Entry, error) {
 	// if we are inside a pod, record some useful info
 	var fields logrus.Fields
-	if exists, err := fileExists(labelsPath); err != nil {
+
+	exists, err := fileExists(labelsPath)
+	if err != nil {
 		return nil, errors.Wrapf(err, "checking if %s exists", labelsPath)
-	} else if exists {
+	}
+
+	if exists {
 		f, err := os.Open(labelsPath)
 		if err != nil {
 			return nil, errors.Wrapf(err, "opening %s", labelsPath)
@@ -134,15 +138,6 @@ func GetLevel() string {
 	return logrus.GetLevel().String()
 }
 
-// GetLevels returns the list of valid log levels
-/* func GetLevels() []string {
-	var levels []string
-	for _, level := range logrus.AllLevels {
-		levels = append(levels, level.String())
-	}
-	return levels
-} */
-
 // setFormatter sets the logrus format to use either text or JSON formatting
 func setFormatter(layout FormatLayoutType) {
 	switch layout {
@@ -163,14 +158,6 @@ func CaptureOutput(f func()) string {
 	logrus.SetOutput(os.Stdout)
 	return buf.String()
 }
-
-/*
-// Not sure if this is required
-// SetOutput sets the outputs for the default logger.
-func SetOutput(out io.Writer) {
-	logrus.SetOutput(out)
-}
-*/
 
 // copied from utils to avoid circular import
 func fileExists(path string) (bool, error) {
