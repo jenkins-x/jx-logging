@@ -32,6 +32,27 @@ func TestLogger_CanSetLevel(t *testing.T) {
 	assert.Equal(t, "DEBUG: hello\n", out)
 }
 
+func TestLogger_CanGetLevel(t *testing.T) {
+	_, err := forceInitLogger()
+	assert.NoError(t, err)
+
+	err = SetLevel("info")
+	assert.NoError(t, err)
+
+	assert.Equal(t, GetLevel(), "info")
+
+	err = SetLevel("debug")
+	assert.NoError(t, err)
+
+	assert.Equal(t, GetLevel(), "debug")
+}
+
+func TestLogger_CanGetLevels(t *testing.T) {
+	levels := GetLevels()
+	assert.Equal(t, levels, []string{"panic", "fatal", "error", "warning", "info", "debug", "trace"})
+}
+
+
 func TestLogger_CannotSetInvalidLevel(t *testing.T) {
 	_, err := forceInitLogger()
 	assert.NoError(t, err)
