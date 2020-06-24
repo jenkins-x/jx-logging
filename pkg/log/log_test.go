@@ -110,6 +110,7 @@ func Test_CanLogToFile(t *testing.T) {
 	defer os.Unsetenv("JX_LOG_FILE")
 
 	l, err := forceInitLogger()
+	assert.NoError(t, err)
 
 	err = SetLevel("debug")
 
@@ -120,17 +121,16 @@ func Test_CanLogToFile(t *testing.T) {
 	t.Logf("Out>: '%s'", out)
 	assert.Equal(t, "DEBUG: debug-hello\n", out)
 
-	b, err := ioutil.ReadFile( file.Name())
+	b, err := ioutil.ReadFile(file.Name())
 	assert.NoError(t, err)
 	t.Logf("File>: '%s'", b)
 	assert.Contains(t, string(b), `"msg":"debug-hello"`)
-
 
 	out = CaptureOutput(func() { l.Info("info-hello") })
 	assert.Equal(t, "info-hello\n", out)
 	t.Logf("Out>: '%s'", out)
 
-	b, err = ioutil.ReadFile( file.Name())
+	b, err = ioutil.ReadFile(file.Name())
 	assert.NoError(t, err)
 	t.Logf("File>: '%s'", b)
 	assert.Contains(t, string(b), `"msg":"debug-hello"`)
@@ -140,7 +140,7 @@ func Test_CanLogToFile(t *testing.T) {
 	assert.Equal(t, "WARNING: warning-hello\n", out)
 	t.Logf("Out>: '%s'", out)
 
-	b, err = ioutil.ReadFile( file.Name())
+	b, err = ioutil.ReadFile(file.Name())
 	assert.NoError(t, err)
 	t.Logf("File>: '%s'", b)
 	assert.Contains(t, string(b), `"msg":"debug-hello"`)
@@ -151,7 +151,7 @@ func Test_CanLogToFile(t *testing.T) {
 	assert.Equal(t, "ERROR: error-hello\n", out)
 	t.Logf("Out>: '%s'", out)
 
-	b, err = ioutil.ReadFile( file.Name())
+	b, err = ioutil.ReadFile(file.Name())
 	assert.NoError(t, err)
 	t.Logf("File>: '%s'", b)
 	assert.Contains(t, string(b), `"msg":"debug-hello"`)
