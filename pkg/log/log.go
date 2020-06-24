@@ -2,6 +2,7 @@ package log
 
 import (
 	"bytes"
+	"io"
 	"os"
 
 	"github.com/pkg/errors"
@@ -138,6 +139,15 @@ func GetLevel() string {
 	return logrus.GetLevel().String()
 }
 
+// GetLevels returns the list of valid log levels
+func GetLevels() []string {
+	var levels []string
+	for _, level := range logrus.AllLevels {
+		levels = append(levels, level.String())
+	}
+	return levels
+}
+
 // setFormatter sets the logrus format to use either text or JSON formatting
 func setFormatter(layout FormatLayoutType) {
 	switch layout {
@@ -157,6 +167,11 @@ func CaptureOutput(f func()) string {
 	f()
 	logrus.SetOutput(os.Stdout)
 	return buf.String()
+}
+
+// SetOutput sets the outputs for the default logger.
+func SetOutput(out io.Writer) {
+	logrus.SetOutput(out)
 }
 
 // copied from utils to avoid circular import
