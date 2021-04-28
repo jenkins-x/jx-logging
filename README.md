@@ -12,5 +12,9 @@ Configuration can be done with the following environment variables.
 | Variable      | Options       | Default |
 | ------------- | ------------- |---------|
 | JX_LOG_LEVEL  | debug, info, warn | info |
-| JX_LOG_FORMAT  | text, json, stackdriver | text |
-| JX_LOG_FILE  | a location to send debug logs to | |
+| JX_LOG_FORMAT | text, json, stackdriver | text |
+| JX_LOG_FILE    | a location to send debug logs to | |
+| JX_LOG_SERVICE | the service name | |
+| JX_LOG_SERVICE_VERSION | the service version | |
+| JX_LOG_STACK_SKIP | the stack frames to skip in the logs | |
+
