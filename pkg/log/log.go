@@ -154,7 +154,20 @@ func setFormatter(layout FormatLayoutType) {
 	case FormatLayoutJSON:
 		logrus.SetFormatter(&logrus.JSONFormatter{})
 	case FormatLayoutStackdriver:
-		logrus.SetFormatter(stackdriver.NewFormatter())
+		var options []stackdriver.Option
+		serviceName := os.Getenv("JX_LOG_SERVICE")
+		if serviceName != "" {
+			options = append(options, stackdriver.WithService(serviceName))
+		}
+		version := os.Getenv("JX_LOG_SERVICE_VERSION")
+		if version != "" {
+			options = append(options, stackdriver.WithVersion(version))
+		}
+		stackSkip := os.Getenv("JX_LOG_STACK_SKIP")
+		if stackSkip != "" {
+			options = append(options, stackdriver.WithStackSkip(stackSkip))
+		}
+		logrus.SetFormatter(stackdriver.NewFormatter(options...))
 	default:
 		logrus.SetFormatter(NewJenkinsXTextFormat())
 	}
