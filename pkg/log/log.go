@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/rickar/props"
@@ -165,7 +166,10 @@ func setFormatter(layout FormatLayoutType) {
 		}
 		stackSkip := os.Getenv("JX_LOG_STACK_SKIP")
 		if stackSkip != "" {
-			options = append(options, stackdriver.WithStackSkip(stackSkip))
+			values := strings.Split(stackSkip, ",")
+			for _, v := range values {
+				options = append(options, stackdriver.WithStackSkip(v))
+			}
 		}
 		logrus.SetFormatter(stackdriver.NewFormatter(options...))
 	default:
