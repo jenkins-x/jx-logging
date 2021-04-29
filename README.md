@@ -16,5 +16,5 @@ Configuration can be done with the following environment variables.
 | JX_LOG_FILE    | a location to send debug logs to | |
 | JX_LOG_SERVICE | the service name | |
 | JX_LOG_SERVICE_VERSION | the service version | |
-| JX_LOG_STACK_SKIP | the stack frames to skip in the logs | |
+| JX_LOG_STACK_SKIP | the comma separated stack frames to skip in the logs | |
 
