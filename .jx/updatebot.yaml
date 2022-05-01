@@ -1,0 +1,24 @@
+apiVersion: updatebot.jenkins-x.io/v1alpha1
+kind: UpdateConfig
+spec:
+  rules:
+    - changes:
+        - regex:
+            pattern: |
+              github.com/jenkins-x/jx-logging v(.*)
+            files:
+              - "go.mod"
+        - go:
+            owner:
+              - jenkins-x-plugins
+            repositories:
+              include:
+                - jx-project
+                - jx-pipeline
+                - jx-admin
+                - jx-preview
+            package: github.com/jenkins-x/jx-logging
+            upgradePackages:
+              include:
+                - "github.com/jenkins-x/*"
+                - "github.com/jenkins-x-plugins/*"
