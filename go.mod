@@ -1,6 +1,6 @@
 module github.com/jenkins-x/jx-logging/v3
 
-go 1.18
+go 1.19
 
 require (
 	github.com/fatih/color v1.9.0
