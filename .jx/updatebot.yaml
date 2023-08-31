@@ -20,5 +20,4 @@ spec:
             package: github.com/jenkins-x/jx-logging
             upgradePackages:
               include:
-                - "github.com/jenkins-x/*"
-                - "github.com/jenkins-x-plugins/*"
+                - "github.com/jenkins-x/jx-logging*"
