@@ -1,10 +1,9 @@
 package log
 
 import (
+	"fmt"
 	"io"
 	"os"
-
-	"github.com/pkg/errors"
 
 	"github.com/sirupsen/logrus"
 )
@@ -57,10 +56,10 @@ var invalidN bool // initialized to false
 func Append(f io.Writer, data []byte) error {
 	n, err := f.Write(data)
 	if err != nil {
-		return errors.Wrapf(err, "failed appending")
+		return fmt.Errorf("failed appending: %w", err)
 	}
 	if n != len(data) || invalidN {
-		return errors.New("failed appending")
+		return fmt.Errorf("failed appending")
 	}
 	return nil
 }

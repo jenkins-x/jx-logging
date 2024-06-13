@@ -1,7 +1,6 @@
 package log
 
 import (
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -51,7 +50,6 @@ func TestLogger_CanGetLevels(t *testing.T) {
 	levels := GetLevels()
 	assert.Equal(t, levels, []string{"panic", "fatal", "error", "warning", "info", "debug", "trace"})
 }
-
 
 func TestLogger_CannotSetInvalidLevel(t *testing.T) {
 	_, err := forceInitLogger()
@@ -117,7 +115,7 @@ func Test_Stackdriver_log_formatter(t *testing.T) {
 }
 
 func Test_CanLogToFile(t *testing.T) {
-	file, err := ioutil.TempFile("/tmp", "test1.*.log")
+	file, err := os.CreateTemp("/tmp", "test1.*.log")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,7 +140,7 @@ func Test_CanLogToFile(t *testing.T) {
 	t.Logf("Out>: '%s'", out)
 	assert.Equal(t, "DEBUG: debug-hello\n", out)
 
-	b, err := ioutil.ReadFile(file.Name())
+	b, err := os.ReadFile(file.Name())
 	assert.NoError(t, err)
 	t.Logf("File>: '%s'", b)
 	assert.Contains(t, string(b), `"msg":"debug-hello"`)
@@ -151,7 +149,7 @@ func Test_CanLogToFile(t *testing.T) {
 	assert.Equal(t, "info-hello\n", out)
 	t.Logf("Out>: '%s'", out)
 
-	b, err = ioutil.ReadFile(file.Name())
+	b, err = os.ReadFile(file.Name())
 	assert.NoError(t, err)
 	t.Logf("File>: '%s'", b)
 	assert.Contains(t, string(b), `"msg":"debug-hello"`)
@@ -161,7 +159,7 @@ func Test_CanLogToFile(t *testing.T) {
 	assert.Equal(t, "WARNING: warning-hello\n", out)
 	t.Logf("Out>: '%s'", out)
 
-	b, err = ioutil.ReadFile(file.Name())
+	b, err = os.ReadFile(file.Name())
 	assert.NoError(t, err)
 	t.Logf("File>: '%s'", b)
 	assert.Contains(t, string(b), `"msg":"debug-hello"`)
@@ -172,7 +170,7 @@ func Test_CanLogToFile(t *testing.T) {
 	assert.Equal(t, "ERROR: error-hello\n", out)
 	t.Logf("Out>: '%s'", out)
 
-	b, err = ioutil.ReadFile(file.Name())
+	b, err = os.ReadFile(file.Name())
 	assert.NoError(t, err)
 	t.Logf("File>: '%s'", b)
 	assert.Contains(t, string(b), `"msg":"debug-hello"`)

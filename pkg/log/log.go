@@ -2,15 +2,13 @@ package log
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"strings"
 
-	"github.com/pkg/errors"
-	"github.com/rickar/props"
-
 	"github.com/fatih/color"
-	stackdriver "github.com/jenkins-x/logrus-stackdriver-formatter/pkg/stackdriver"
+	"github.com/jenkins-x/logrus-stackdriver-formatter/pkg/stackdriver"
 	"github.com/sirupsen/logrus"
 )
 
@@ -28,8 +26,6 @@ var (
 	colorError = color.New(color.FgRed).SprintFunc()
 
 	logger *logrus.Entry
-
-	labelsPath = "/etc/labels"
 )
 
 // FormatLayoutType the layout kind
@@ -61,33 +57,7 @@ func initializeLogger() error {
 }
 
 func forceInitLogger() (*logrus.Entry, error) {
-	// if we are inside a pod, record some useful info
-	var fields logrus.Fields
-
-	exists, err := fileExists(labelsPath)
-	if err != nil {
-		return nil, errors.Wrapf(err, "checking if %s exists", labelsPath)
-	}
-
-	if exists {
-		f, err := os.Open(labelsPath)
-		if err != nil {
-			return nil, errors.Wrapf(err, "opening %s", labelsPath)
-		}
-		labels, err := props.Read(f)
-		if err != nil {
-			return nil, errors.Wrapf(err, "reading %s as properties", labelsPath)
-		}
-		app := labels.Get("app")
-		if app != "" {
-			fields["app"] = app
-		}
-		chart := labels.Get("chart")
-		if chart != "" {
-			fields["chart"] = labels.Get("chart")
-		}
-	}
-	logger = logrus.WithFields(fields)
+	logger = logrus.NewEntry(logrus.New())
 
 	format := os.Getenv(JxLogFormat)
 	if format == "json" {
@@ -102,7 +72,7 @@ func forceInitLogger() (*logrus.Entry, error) {
 	if level != "" {
 		err := SetLevel(level)
 		if err != nil {
-			return nil, errors.Wrapf(err, "unable to set level to %s", level)
+			return nil, fmt.Errorf("unable to set level to %s: %w", level, err)
 		}
 	}
 
@@ -129,7 +99,7 @@ func Logger() *logrus.Entry {
 func SetLevel(s string) error {
 	level, err := logrus.ParseLevel(s)
 	if err != nil {
-		return errors.Errorf("Invalid log level '%s'", s)
+		return fmt.Errorf("Invalid log level '%s'", s)
 	}
 	logrus.SetLevel(level)
 	return nil
@@ -189,16 +159,4 @@ func CaptureOutput(f func()) string {
 // SetOutput sets the outputs for the default logger.
 func SetOutput(out io.Writer) {
 	logrus.SetOutput(out)
-}
-
-// copied from utils to avoid circular import
-func fileExists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
-	}
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	return true, errors.Wrapf(err, "failed to check if file exists %s", path)
 }
