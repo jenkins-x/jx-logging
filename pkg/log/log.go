@@ -57,8 +57,6 @@ func initializeLogger() error {
 }
 
 func forceInitLogger() (*logrus.Entry, error) {
-	logger = logrus.NewEntry(logrus.New())
-
 	format := os.Getenv(JxLogFormat)
 	if format == "json" {
 		setFormatter(FormatLayoutJSON)
@@ -82,6 +80,7 @@ func forceInitLogger() (*logrus.Entry, error) {
 		logrus.AddHook(hook)
 	}
 
+	logger = logrus.NewEntry(logrus.StandardLogger())
 	return logger, nil
 }
 
