@@ -41,6 +41,9 @@ const (
 	// FormatLayoutStackdriver uses a custom formatter for stackdriver
 	FormatLayoutStackdriver FormatLayoutType = "stackdriver"
 
+	// FormatLayoutExtended uses the standard logrus text layout. Notably it shows fields, which text do not
+	FormatLayoutExtended FormatLayoutType = "extended"
+
 	JxLogFormat = "JX_LOG_FORMAT"
 	JxLogFile   = "JX_LOG_FILE"
 	JxLogLevel  = "JX_LOG_LEVEL"
@@ -57,14 +60,7 @@ func initializeLogger() error {
 }
 
 func forceInitLogger() (*logrus.Entry, error) {
-	format := os.Getenv(JxLogFormat)
-	if format == "json" {
-		setFormatter(FormatLayoutJSON)
-	} else if format == "stackdriver" {
-		setFormatter(FormatLayoutStackdriver)
-	} else {
-		setFormatter(FormatLayoutText)
-	}
+	setFormatter(FormatLayoutType(os.Getenv(JxLogFormat)))
 
 	level := os.Getenv(JxLogLevel)
 	if level != "" {
@@ -141,6 +137,8 @@ func setFormatter(layout FormatLayoutType) {
 			}
 		}
 		logrus.SetFormatter(stackdriver.NewFormatter(options...))
+	case FormatLayoutExtended:
+		logrus.SetFormatter(&logrus.TextFormatter{})
 	default:
 		logrus.SetFormatter(NewJenkinsXTextFormat())
 	}
