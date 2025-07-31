@@ -6,7 +6,7 @@ toolchain go1.22.3
 
 require (
 	github.com/fatih/color v1.18.0
-	github.com/jenkins-x/logrus-stackdriver-formatter v0.2.7
+	github.com/jenkins-x/logrus-stackdriver-formatter v0.2.8
 	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.10.0
 )
